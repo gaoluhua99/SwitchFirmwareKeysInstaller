@@ -163,10 +163,13 @@ class Application(customtkinter.CTk):
         self.fetching_versions=True
         self.fetched_versions=0
         
-        
-        threading.Thread(target=self.fetch_firmware_versions).start()
-        threading.Thread(target=self.fetch_key_versions).start()
-        threading.Thread(target=self.display_both_versions).start()
+        try:
+            threading.Thread(target=self.fetch_firmware_versions).start()
+            threading.Thread(target=self.fetch_key_versions).start()
+            threading.Thread(target=self.display_both_versions).start()
+        except Exception as e:
+            messagebox.showerror("Error",e)
+            
         
         
     def display_both_versions(self):  
