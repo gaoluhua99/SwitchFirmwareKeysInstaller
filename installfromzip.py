@@ -1,5 +1,7 @@
+import io
 import os
 import re
+import shutil
 import threading
 import time
 import tkinter as tk
@@ -91,13 +93,17 @@ class Application(customtkinter.CTk):
         super().__init__()
         self.title("SwitchEmuTool")
         self.delete_download=tk.BooleanVar()
-        self.geometry("900x500")
+        self.geometry("839x519")
+        self.resizable(False, False)
         self.fetched_versions=0
         self.fetching_versions=False
+        self.firmware_installation_in_progress = False
+        self.key_installation_in_progress = False
+        self.downloads_in_progress = 0
         self.tabview=customtkinter.CTkTabview(self)
+        self.tabview.add("Both")
         self.tabview.add("Firmware")
         self.tabview.add("Keys")
-        self.tabview.add("Both")
         self.tabview.add("Downloads")
         self.tabview.grid(row=1, column=0, padx=20, pady=20)
         self.firmware_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Firmware"), width=700, height=400)
@@ -119,38 +125,49 @@ class Application(customtkinter.CTk):
         self.downloads_frame.grid(row=0, column=0)
         self.downloads_frame.grid_columnconfigure(0, weight=1)
         
-        self.menu = tk.Menu(self.master)
+        self.menu = tk.Menu(self.master, tearoff="off")
         self.config(menu=self.menu)
-        self.file_menu = tk.Menu(self.menu)
+        self.file_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button)
-
-        self.options_menu = tk.Menu(self.menu)
+        self.delete_download = customtkinter.BooleanVar()
+        self.delete_download.set(True)
+        self.options_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="Options", menu=self.options_menu)
         self.options_menu.add_checkbutton(label="Delete files after installing", offvalue=False, onvalue=True, variable=self.delete_download)
-        self.options_menu.add_command(label="Fetch versions", command=self.fetch_versions)
+        
         
         self.emulator_choice=customtkinter.StringVar()
+        self.emulator_choice.set("Both")
         self.download_options = tk.Menu(self.menu)
         self.download_options.add_radiobutton(label="Yuzu", value="Yuzu", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Ryujinx", value="Ryujinx", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Both", value="Both", variable=self.emulator_choice)
         self.options_menu.add_cascade(label="Install files for...", menu=self.download_options)
         
+        #self.portable_
+        download_folder = os.path.join(os.getcwd(), "EmuToolDownloads")
+        
+        if not os.path.exists(download_folder):
+            os.makedirs(download_folder)
         self.fetch_versions()
         self.mainloop()
     
         
 
     def fetch_versions(self):
+        
         if self.fetching_versions:
             messagebox.showerror("EmuTool","A version fetch is already in progress!")
             return
         self.fetching_versions=True
         self.fetched_versions=0
+        
+        
         threading.Thread(target=self.fetch_firmware_versions).start()
         threading.Thread(target=self.fetch_key_versions).start()
         threading.Thread(target=self.display_both_versions).start()
+        
         
     def display_both_versions(self):  
         while self.fetched_versions<2:
@@ -161,7 +178,7 @@ class Application(customtkinter.CTk):
                 if firmware_version[0].split("Firmware ")[-1] == key_version[0].split("Keys ")[-1]:
             
                     version = key_version[0].split("Keys ")[-1]
-                    links=[firmware_version[1], key_version[1]]
+                    links=[key_version[1], firmware_version[1]]
                     version_label = customtkinter.CTkLabel(self.both_versions_frame, text=version)
                     version_label.grid(row=count, column=0, pady=10, sticky="W")
                     version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.download(links, mode="Both"))
@@ -224,68 +241,163 @@ class Application(customtkinter.CTk):
         self.fetched_versions+=1
             
         
-        
     
     def download(self, link, mode):
-        print(self.emulator_choice.get())
+        self.tabview.set("Downloads")
         if mode=="Both":
+            if self.key_installation_in_progress or self.firmware_installation_in_progress:
+                messagebox.showerror("Error","There is already a firmware or key installation in progress!")
+                return
+        
             threading.Thread(target=self.download_both, args=(link,)).start()
         elif mode == "Keys":
+            if self.key_installation_in_progress:
+                messagebox.showerror("Error","There is already a key installation in progress!")
+                return
+            
             threading.Thread(target=self.download_keys, args=(link,)).start()
         elif mode == "Firmware":
+            if self.firmware_installation_in_progress:
+                messagebox.showerror("Error","There is already a firmware installation in progress!")
+                return
+            
             threading.Thread(target=self.download_firmware, args=(link,)).start()
         
 
     def download_both(self, links):
-        for link in links:
-            self.download_from_link(link['href'], unquote(link['href'].split('/')[-1]))
+        self.download_keys(links[0])
+        self.download_firmware(links[1])
+   
+   
     def download_keys(self, link):
-        self.download_from_link(link['href'], (re.sub('<[^>]+>', '', str(link))+".zip") )
-    def download_firmware(self, link):
-        self.download_from_link(link['href'], unquote(link['href'].split('/')[-1]))
-       
-    def download_from_link(self, link, filename):
-        progress_bar = customtkinter.CTkProgressBar(self.downloads_frame, orientation="horizontal", mode="determinate")
-        progress_bar.grid(row=0, column=1, sticky="E")
-        progress_bar.set(0)
-        download_name = customtkinter.CTkLabel(self.downloads_frame, text=filename)
-        download_name.grid(row=0, column=0, sticky="W")
-        session = requests.Session()
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-        response=session.get(link, headers=headers, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        print(total_size)
-        with open(filename, "wb") as f:
-            if total_size is None:
-                f.write(response.content)
+        self.downloads_in_progress+=1
+        self.key_installation_in_progress = True
+        try:
+            download_result = self.download_from_link(link['href'], re.sub('<[^>]+>', '', str(link))) 
+        except Exception as e:
+            messagebox.showerror("Error",e)
+            self.key_installation_in_progress = False
+            return
+        if download_result is not None:
+            downloaded_file = download_result[0]
+            status_frame = download_result[1]
+            if self.emulator_choice.get() == "Both":
+                try:
+                    self.install_keys("Yuzu", downloaded_file, status_frame)
+                    self.install_keys("Ryujinx", downloaded_file, status_frame)
+                except Exception as e:
+                    messagebox.showerror("Error",e)
+                    self.key_installation_in_progress = False
+                    return
             else:
-                dl=0
-                for data in response.iter_content(chunk_size=1024*1024*10):
-                    dl+=len(data)
-                    f.write(data)
-                    print(f"{dl}/{total_size}")
-                    done = (dl / int(total_size))
-                    print(done)
-                    progress_bar.set(done)
-                    self.update_idletasks()
-                    self.update()
+                try:
+                    self.install_keys(self.emulator_choice.get(), downloaded_file, status_frame)
+                except Exception as e:
+                    messagebox.showerror("Error", e)
+                    self.key_installation_in_progress = False
+                    return
+                
+                    
+                    
+        status_frame.finish_installation()
+        self.key_installation_in_progress = False
+        if self.delete_download.get():
+            os.remove(downloaded_file)
+        
+        
+    
+    def install_keys(self, emulator, keys, status_frame = None):
+        if status_frame is not None: status_frame.complete_download(emulator)
+        dst_folder = os.path.join(os.path.join(os.getenv('APPDATA'), emulator), "keys") if emulator=="Yuzu" else os.path.join(os.path.join(os.getenv('APPDATA'), emulator), "system")
+        if not os.path.exists(dst_folder): os.makedirs(dst_folder)
+        dst_file = os.path.join(dst_folder, "prod.keys")
+        if os.path.exists(dst_file): os.remove(dst_file)
+        shutil.copy(keys, dst_folder)
+        if status_frame is not None: status_frame.update_extraction_progress(1)
+                        
+    
+    def download_firmware(self, link):
+        self.downloads_in_progress+=1
+        self.firmware_installation_in_progress = True
+        try:
+            download_result = self.download_from_link(link['href'], unquote(link['href'].split('/')[-1].split('.zip')[-2]))
+        except Exception as e:
+            messagebox.showerror("Error",e)
+            self.firmware_installation_in_progress = False
+            return 
+        if download_result is not None:
+            downloaded_file = download_result[0]
+            status_frame = download_result[1]
+            if self.emulator_choice.get() == "Both":
+                try:
+                    self.install_firmware("Yuzu", downloaded_file, status_frame)
+                    self.install_firmware("Ryujinx", downloaded_file, status_frame)
+                    status_frame.finish_installation()
+                except Exception as e:
+                    messagebox.showerror("ERROR",f"{e}")
+                    status_frame.installation_interrupted(e)
+                    self.firmware_installation_in_progress = False
+                    return 
+            else:
+                try:
+                    self.install_firmware(self.emulator_choice.get(), downloaded_file, status_frame)
+                    status_frame.finish_installation()
+                except Exception as e:
+                    messagebox.showerror("Error", e)
+                    status_frame.installation_interrupted(e)
+                    self.firmware_installation_in_progress = False
+                
+        if self.delete_download.get():
+            os.remove(downloaded_file)  
+            
+        self.firmware_installation_in_progress = False
+
+    def install_firmware(self, emulator, firmware_source, status_frame = None):
+        emulator_folder = os.path.join(os.getenv('APPDATA'), emulator)
+        if status_frame is not None: status_frame.complete_download(emulator)
+        if emulator == "Ryujinx":
+            install_directory= os.path.join(emulator_folder, r'bis\system\Contents\registered')
+        elif emulator == "Yuzu":
+            install_directory= os.path.join(emulator_folder, r'nand\system\Contents\registered')
+        
+            
+        _, ext = os.path.splitext(firmware_source)
+        with open(firmware_source, 'rb') as file:
+            if ext == ".zip":
+              
+                with zipfile.ZipFile(file) as archive:
+                    self.extract_from_zip(archive, install_directory, emulator, status_frame)
+            else:
+                raise Exception("Error: Firmware file is not a zip file.")
+                
+        
+        
+        
+        
     def install_from_zip_button(self):
         path_to_zip = filedialog.askopenfilename(filetypes=[("Zip files", "*.zip")])
-        if path_to_zip is not None and path_to_zip != "": threading.Thread(target=self.open_zip, args=(path_to_zip,)).start()
+        if path_to_zip is not None and path_to_zip != "": 
+            if self.emulator_choice.get() == "Both":
+                try:
+                    self.install_firmware("Yuzu", path_to_zip)
+                    self.install_firmware("Ryujinx", path_to_zip)
+                except Exception as e:
+                    messagebox.showerror("Error", e)
+                
+            else:
+                try:
+                    self.install_firmware(self.emulator_choice.get(), path_to_zip)
+                except Exception as e:
+                    messagebox.showerror("Error", e)
+                
+            
         
-    def open_zip(self, firmwareSource):
 
- 
-        temporaryDirectory= os.path.join(os.getenv('APPDATA'), 'Ryujinx', 'testextract')
-        _, ext = os.path.splitext(firmwareSource)
 
-        with open(firmwareSource, 'rb') as file:
-            if ext == ".zip":
-                with zipfile.ZipFile(file) as archive:
-                    self.extract_from_zip(archive, temporaryDirectory)
-
-    def extract_from_zip(self, archive, temporaryDirectory):
+    def extract_from_zip(self, archive, install_directory, emulator, status_frame = None):
+        self.delete_files_and_folders(install_directory)
+        total_files = len(archive.namelist())
+        extracted_files = 0
         for entry in archive.infolist():
             if entry.filename.endswith('.nca') or entry.filename.endswith('.nca/00'):
                 path_components = entry.filename.replace('.cnmt', '').split('/')
@@ -295,10 +407,11 @@ class Application(customtkinter.CTk):
                     nca_id = path_components[-2]
 
                 if '.nca' in nca_id:
-                    new_path = os.path.join(temporaryDirectory, nca_id)
-                    os.makedirs(new_path, exist_ok=True)
-                    with open(os.path.join(new_path, '00'), 'wb') as f:
-                        f.write(archive.read(entry))
+                    if emulator=="Ryujinx":
+                        new_path = os.path.join(install_directory, nca_id)
+                        os.makedirs(new_path, exist_ok=True)
+                        with open(os.path.join(new_path, '00'), 'wb') as f:
+                            f.write(archive.read(entry))
                     elif emulator=="Yuzu":
                         new_path = os.path.join(install_directory, nca_id)
                         with open(new_path, 'wb') as f:
