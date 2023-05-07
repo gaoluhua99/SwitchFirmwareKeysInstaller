@@ -23,39 +23,47 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.filename = filename
         self.start_time = time.perf_counter()
         self.total_size = 0
-        download_name = customtkinter.CTkLabel(self, text=filename)
-        download_name.grid(row=0, column=0, sticky="W", padx=5)
-        
-        self.progress_bar = customtkinter.CTkProgressBar(self, orientation="horizontal", width=250, mode="determinate")
-        self.progress_bar.grid(row=0, column=2, sticky="E", padx=5)
+
+        self.download_name = customtkinter.CTkLabel(self, text=filename)
+        self.download_name.grid(row=0, column=0, sticky="W", padx=10, pady=5)
+
+        self.progress_label = customtkinter.CTkLabel(self, text="0 MB / 0 MB")
+        self.progress_label.grid(row=1, column=0, sticky="W", padx=10)
+
+        self.progress_bar = customtkinter.CTkProgressBar(self, orientation="horizontal", mode="determinate")
+        self.progress_bar.grid(row=2, column=0, columnspan=6, padx=(10,45), pady=5, sticky="EW")
         self.progress_bar.set(0)
 
         self.percentage_complete = customtkinter.CTkLabel(self, text="0%")
-        self.percentage_complete.grid(row=0, column=1, sticky="E")
+        self.percentage_complete.grid(row=2, column=5, sticky="E", padx=10)
 
-        self.download_speed_label = customtkinter.CTkLabel(self, text="0 MB/s ETA: 00:00:00")
-        self.download_speed_label.grid(row=1, column=2, sticky="E", padx=5)
-        
+        self.download_speed_label = customtkinter.CTkLabel(self, text="0 MB/s")
+        self.download_speed_label.grid(row=1, column=5, sticky="E", padx=10)
+
         self.install_status_label = customtkinter.CTkLabel(self, text="Status: Downloading...")
-        self.install_status_label.grid(row=1, column=0, sticky="W", padx=5)
-        
+        self.install_status_label.grid(row=3, column=0, sticky="W", padx=10, pady=5)
+
+        self.eta_label = customtkinter.CTkLabel(self, text="ETA: 00:00:00")
+        self.eta_label.grid(row=0, column=5, sticky="E", pady=5, padx=10)
+
         self.cancel_download_button = customtkinter.CTkButton(self, text="Cancel", command=self.cancel_button_event)
-        self.cancel_download_button.grid(row=3,column=2, pady=10, padx=5, sticky="E")
+        self.cancel_download_button.grid(row=3, column=5, pady=10, padx=10, sticky="E")
+
     def update_download_progress(self, downloaded_bytes):
-        
-        done = downloaded_bytes / self.total_size 
+        done = downloaded_bytes / self.total_size
         speed = downloaded_bytes / (time.perf_counter() - self.start_time)
         time_left = (self.total_size - downloaded_bytes) / speed
-        
+
         minutes, seconds = divmod(int(time_left), 60)
         hours, minutes = divmod(minutes, 60)
         time_left_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-                    
-       
+
         self.progress_bar.set(done)
+        self.progress_label.configure(text=f"{downloaded_bytes/1024/1024:.2f} MB / {self.total_size/1024/1024:.2f} MB")
         self.percentage_complete.configure(text=f"{str(done*100).split('.')[0]}%")
-        self.download_speed_label.configure(text=f"{downloaded_bytes/1024/1024:.2f}/{self.total_size/1024/1024:.2f}Mb - {speed/1024/1024:.2f} Mb/s, ETA: {time_left_str}")
-        
+        self.download_speed_label.configure(text=f"{speed/1024/1024:.2f} MB/s")
+        self.eta_label.configure(text=f"ETA: {time_left_str}")
+
     def cancel_button_event(self, skip_confirmation=False):
         if skip_confirmation or messagebox.askyesno("Confirmation", "Are you sure you want to cancel this download?"):
             self.cancel_download_raised = True
