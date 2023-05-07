@@ -10,9 +10,82 @@ from urllib.parse import unquote
 import customtkinter
 import requests
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 
+class DownloadStatusFrame(customtkinter.CTkFrame):
+    def __init__(self, parent, filename):
+        super().__init__(parent)
+        self.grid_columnconfigure(0, weight=1)
+        self.cancel_download_raised = False
+        self.parent = parent
+        self.filename = filename
+        self.start_time = time.perf_counter()
+        self.total_size = 0
+        download_name = customtkinter.CTkLabel(self, text=filename)
+        download_name.grid(row=0, column=0, sticky="W", padx=5)
+        
+        self.progress_bar = customtkinter.CTkProgressBar(self, orientation="horizontal", width=250, mode="determinate")
+        self.progress_bar.grid(row=0, column=2, sticky="E", padx=5)
+        self.progress_bar.set(0)
+
+        self.percentage_complete = customtkinter.CTkLabel(self, text="0%")
+        self.percentage_complete.grid(row=0, column=1, sticky="E")
+
+        self.download_speed_label = customtkinter.CTkLabel(self, text="0 MB/s ETA: 00:00:00")
+        self.download_speed_label.grid(row=1, column=2, sticky="E", padx=5)
+        
+        self.install_status_label = customtkinter.CTkLabel(self, text="Status: Downloading...")
+        self.install_status_label.grid(row=1, column=0, sticky="W", padx=5)
+        
+        self.cancel_download_button = customtkinter.CTkButton(self, text="Cancel", command=self.cancel_button_event)
+        self.cancel_download_button.grid(row=3,column=2, pady=10, padx=5, sticky="E")
+    def update_download_progress(self, downloaded_bytes):
+        
+        done = downloaded_bytes / self.total_size 
+        speed = downloaded_bytes / (time.perf_counter() - self.start_time)
+        time_left = (self.total_size - downloaded_bytes) / speed
+        
+        minutes, seconds = divmod(int(time_left), 60)
+        hours, minutes = divmod(minutes, 60)
+        time_left_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                    
+       
+        self.progress_bar.set(done)
+        self.percentage_complete.configure(text=f"{str(done*100).split('.')[0]}%")
+        self.download_speed_label.configure(text=f"{downloaded_bytes/1024/1024:.2f}/{self.total_size/1024/1024:.2f}Mb - {speed/1024/1024:.2f} Mb/s, ETA: {time_left_str}")
+        
+    def cancel_button_event(self, skip_confirmation=False):
+        if skip_confirmation or messagebox.askyesno("Confirmation", "Are you sure you want to cancel this download?"):
+            self.cancel_download_raised = True
+            self.cancel_download_button.configure(text="Cancelling...", state="disabled")
+            self.destroy()
+    def update_extraction_progress(self, value):
+        self.progress_bar.set(value)
+        self.percentage_complete.configure(text=f"{str(value*100).split('.')[0]}%")
+            
+    def installation_interrupted(self, error):
+        self.cancel_download_raised = True
+        self.cancel_download_button.configure(state="disabled")
+        self.install_status_label.configure(text=f"Encountered error: {error}")
+        
+            
+    
+            
+    def complete_download(self, emulator):
+        self.cancel_download_button.configure(state="disabled")
+        self.install_status_label.configure(text=f"Status: Installing for {emulator}....")
+        self.progress_bar.set(0)
+        self.percentage_complete.configure(text="0%")
+    def finish_installation(self):
+        minutes, seconds = divmod(int(time.perf_counter()-self.start_time), 60)
+        hours, minutes = divmod(minutes, 60)
+        elapsed_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        self.install_status_label.configure(text="Status: Complete")
+        self.download_speed_label.configure(text=f"Elapsed time: {elapsed_time}")
+        messagebox.showinfo("Download Complete", f"{self.filename} has been installed")
+        
+   
+        
 class Application(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -226,12 +299,69 @@ class Application(customtkinter.CTk):
                     os.makedirs(new_path, exist_ok=True)
                     with open(os.path.join(new_path, '00'), 'wb') as f:
                         f.write(archive.read(entry))
+                    elif emulator=="Yuzu":
+                        new_path = os.path.join(install_directory, nca_id)
+                        with open(new_path, 'wb') as f:
+                            f.write(archive.read(entry))
+                    extracted_files+=1
+                    if status_frame is not None:
+                        status_frame.update_extraction_progress(extracted_files / total_files)
+                        
             else:
-                messagebox.showerror("EmuTool","Unexpected file in ZIP")
-                return 
-        messagebox.showinfo("EmuTool", "Finished extracting zip")
+                
+                raise Exception("Error: ZIP file is not a firmware file or contains other files.")
+        
+       
+    def download_from_link(self, link, filename):
+       
+        download_status_frame = DownloadStatusFrame(self.downloads_frame, filename)
+        download_status_frame.grid(row=self.downloads_in_progress, column=0, sticky="EW", pady=20)
+        filename = unquote(link.split('/')[-1])
+        
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 OPR/97.0.0.0',
+            'Accept-Encoding': 'identity'  # Disable compression
+        }
+        session = requests.Session()
+        response=session.get(link, headers=headers, stream=True)
+        response.raise_for_status()
+        #response=requests.get(link, headers=headers, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+        file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
+        with io.BytesIO() as f:
+            
+        
+            download_status_frame.start_time = time.perf_counter()
+            download_status_frame.total_size = total_size
+            if total_size is None:
+                f.write(response.content)
+            else:
+                downloaded_bytes=0
+                
+                for data in response.iter_content(chunk_size=1024*512):
+                    if download_status_frame.cancel_download_raised:
+                        raise Exception("Download cancelled by user")
+                    downloaded_bytes+=len(data)
+                    f.write(data)
+                    
+                        
+                    download_status_frame.update_download_progress(downloaded_bytes)
+               
+            if downloaded_bytes != total_size:
+                download_status_frame.cancel_button_event(True)
+                raise Exception(f"File was not completely downloaded {downloaded_bytes}/{total_size}\n Exited after {time.perf_counter() - download_status_frame.start_time} s.")
 
+            with open(file_path, 'wb') as file:
+                file.write(f.getvalue())
+        
 
+    def delete_files_and_folders(self, directory):
+        for root, dirs, files in os.walk(directory, topdown=False):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for folder in dirs:
+                os.rmdir(os.path.join(root, folder))
 
 
 Application()               
