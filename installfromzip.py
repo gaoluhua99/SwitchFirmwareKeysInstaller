@@ -355,7 +355,8 @@ class Application(customtkinter.CTk):
             with open(file_path, 'wb') as file:
                 file.write(f.getvalue())
         
-
+        return file_path, download_status_frame
+    
     def delete_files_and_folders(self, directory):
         for root, dirs, files in os.walk(directory, topdown=False):
             for file in files:
