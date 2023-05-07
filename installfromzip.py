@@ -362,9 +362,10 @@ class Application(customtkinter.CTk):
                 os.remove(os.path.join(root, file))
             for folder in dirs:
                 os.rmdir(os.path.join(root, folder))
+    
 
-
-Application()               
+if __name__ == "__main__":
+    Application()               
 
 
 
