@@ -49,7 +49,8 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.cancel_download_button = customtkinter.CTkButton(self, text="Cancel", command=self.cancel_button_event)
         self.cancel_download_button.grid(row=3, column=5, pady=10, padx=10, sticky="E")
 
-    def update_download_progress(self, downloaded_bytes):
+    def update_download_progress(self, downloaded_bytes, chunk_size):
+        
         done = downloaded_bytes / self.total_size
         avg_speed = downloaded_bytes / ((time.perf_counter() - self.start_time) - self.time_during_cancel)
         #cur_speed = chunk_size / (time.perf_counter() - self.time_at_start_of_chunk)
@@ -62,8 +63,11 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.progress_bar.set(done)
         self.progress_label.configure(text=f"{downloaded_bytes/1024/1024:.2f} MB / {self.total_size/1024/1024:.2f} MB")
         self.percentage_complete.configure(text=f"{str(done*100).split('.')[0]}%")
-        self.download_speed_label.configure(text=f"{speed/1024/1024:.2f} MB/s")
+        self.download_speed_label.configure(text=f"{avg_speed/1024/1024:.2f} MB/s")
         self.eta_label.configure(text=f"ETA: {time_left_str}")
+        self.time_at_start_of_chunk = time.perf_counter()
+        #print(f"Current: {speed/1024/1024:.2f} MB/s")
+        #print(f"Avg: {avg_speed/1024/1024:.2f} MB/s")
 
     def cancel_button_event(self, skip_confirmation=False):
         start_time = time.perf_counter()
@@ -403,14 +407,16 @@ class Application(customtkinter.CTk):
                     status_frame.installation_interrupted(e)
                     self.firmware_installation_in_progress = False
                 
-        if self.delete_download.get():
-            os.remove(downloaded_file)  
-            
+            if self.delete_download.get():
+                os.remove(downloaded_file)  
+                
         self.firmware_installation_in_progress = False
+       
 
     def install_firmware(self, emulator, firmware_source, status_frame = None):
         emulator_folder = os.path.join(os.getenv('APPDATA'), emulator)
-        if status_frame is not None: status_frame.complete_download(emulator)
+        if status_frame is not None: 
+            status_frame.complete_download(emulator)
         if emulator == "Ryujinx":
             install_directory= os.path.join(emulator_folder, r'bis\system\Contents\registered')
         elif emulator == "Yuzu":
