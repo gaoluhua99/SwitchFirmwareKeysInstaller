@@ -121,6 +121,8 @@ class Application(customtkinter.CTk):
         self.fetching_versions=False
         self.firmware_installation_in_progress = False
         self.key_installation_in_progress = False
+        self.retries_attempted = 0
+        self.error_fetching_versions = False
         self.downloads_in_progress = 0
         self.tabview=customtkinter.CTkTabview(self)
         self.tabview.add("Both")
@@ -189,18 +191,29 @@ class Application(customtkinter.CTk):
             return
         self.fetching_versions=True
         self.fetched_versions=0
+        self.error_encountered = None
+        self.error_fetching_versions = False
+        threading.Thread(target=self.fetch_firmware_versions).start()
+        threading.Thread(target=self.fetch_key_versions).start()
+        threading.Thread(target=self.display_both_versions).start()
         
-        try:
-            threading.Thread(target=self.fetch_firmware_versions).start()
-            threading.Thread(target=self.fetch_key_versions).start()
-            threading.Thread(target=self.display_both_versions).start()
-        except Exception as e:
-            messagebox.showerror("Error",e)
             
         
         
     def display_both_versions(self):  
         while self.fetched_versions<2:
+            if self.error_fetching_versions:
+                
+                    
+                
+                self.fetching_versions = False
+                if self.retries_attempted < 3 and messagebox.askretrycancel("Error", f"Error while fetching versions. Retry?\n\nFull Error: {self.error_encountered}" ):
+                    self.retries_attempted+=1
+                    self.fetch_versions()
+                    return
+                else:
+                    quit()
+                
             time.sleep(1)
         count=0
         for firmware_version in self.firmware_versions:
@@ -224,8 +237,13 @@ class Application(customtkinter.CTk):
 
        
         url = base64.b64decode('aHR0cHM6Ly9kYXJ0aHN0ZXJuaWUubmV0L3N3aXRjaC1maXJtd2FyZXMv'.encode("ascii")).decode("ascii")
-        url = "https://darthsternie.net/switch-firmwares/"
-        page = requests.get(url)
+        try:
+            page = requests.get(url)
+        except Exception as e:
+            self.error_fetching_versions = True
+            self.error_encountered = e
+            
+            return
         soup = BeautifulSoup(page.content, "html.parser")
 
         self.firmware_versions = []
@@ -238,7 +256,12 @@ class Application(customtkinter.CTk):
 
     def fetch_key_versions(self):  
         url = "https://github.com/Viren070/SwitchFirmwareKeysInstaller/blob/main/Keys/keys.md"
-        page = requests.get(url)
+        try:
+            page = requests.get(url)
+        except Exception as e:
+            self.error_fetching_versions = True
+            self.error_encountered = e
+            return
         soup = BeautifulSoup(page.content, "html.parser")
 
         self.key_versions = []
