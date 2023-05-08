@@ -442,19 +442,26 @@ class Application(customtkinter.CTk):
     def install_from_zip(self):
         path_to_zip = filedialog.askopenfilename(filetypes=[("Zip files", "*.zip")])
         if path_to_zip is not None and path_to_zip != "": 
+            self.downloads_in_progress+=1
+            self.firmware_installation_in_progress = True
+            self.tabview.set("Downloads")
+            status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_zip.split("/")[-1]))
+            status_frame.grid(row=self.downloads_in_progress, pady=10)
+            status_frame.skip_to_installation()
             if self.emulator_choice.get() == "Both":
                 try:
-                    self.install_firmware("Yuzu", path_to_zip)
-                    self.install_firmware("Ryujinx", path_to_zip)
+                    self.install_firmware("Yuzu", path_to_zip, status_frame)
+                    self.install_firmware("Ryujinx", path_to_zip, status_frame)
                 except Exception as e:
                     messagebox.showerror("Error", e)
                 
             else:
                 try:
-                    self.install_firmware(self.emulator_choice.get(), path_to_zip)
+                    self.install_firmware(self.emulator_choice.get(), path_to_zip, status_frame)
                 except Exception as e:
                     messagebox.showerror("Error", e)
-                
+            status_frame.finish_installation()
+            self.firmware_installation_in_progress = False
             
         
 
