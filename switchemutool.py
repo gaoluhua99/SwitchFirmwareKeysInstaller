@@ -491,7 +491,8 @@ class Application(customtkinter.CTk):
                     download_status_frame.update_download_progress(downloaded_bytes)
                
             if downloaded_bytes != total_size:
-                download_status_frame.cancel_button_event(True)
+                download_status_frame.destroy()
+                self.downloads_in_progress -= 1
                 raise Exception(f"File was not completely downloaded {downloaded_bytes}/{total_size}\n Exited after {time.perf_counter() - download_status_frame.start_time} s.")
 
             with open(file_path, 'wb') as file:
