@@ -499,8 +499,13 @@ class Application(customtkinter.CTk):
             'Accept-Encoding': 'identity'  # Disable compression
         }
         session = requests.Session()
-        response=session.get(link, headers=headers, stream=True)
-        response.raise_for_status()
+        try:
+            response=session.get(link, headers=headers, stream=True)
+            response.raise_for_status()
+        except Exception as e:
+            download_status_frame.installation_interrupted("Error: Check your internet connection")
+            messagebox.showerror("Error",e)
+            return None
         #response=requests.get(link, headers=headers, stream=True)
         total_size = int(response.headers.get('content-length', 0))
         file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
