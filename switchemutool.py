@@ -77,7 +77,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
             self.install_status_label.configure(text="Status: Cancelled")
             return True
         else:
-            self.time_during_cancel = time.perf_counter() - start_time
+            self.time_during_cancel += ( time.perf_counter() - start_time )
             return False
         
             
