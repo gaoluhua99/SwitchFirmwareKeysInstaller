@@ -23,7 +23,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.filename = filename
         self.start_time = time.perf_counter()
         self.total_size = 0
-
+        self.time_during_cancel = 0
         self.download_name = customtkinter.CTkLabel(self, text=filename)
         self.download_name.grid(row=0, column=0, sticky="W", padx=10, pady=5)
 
@@ -51,8 +51,9 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
 
     def update_download_progress(self, downloaded_bytes):
         done = downloaded_bytes / self.total_size
-        speed = downloaded_bytes / (time.perf_counter() - self.start_time)
-        time_left = (self.total_size - downloaded_bytes) / speed
+        avg_speed = downloaded_bytes / ((time.perf_counter() - self.start_time) - self.time_during_cancel)
+        #cur_speed = chunk_size / (time.perf_counter() - self.time_at_start_of_chunk)
+        time_left = (self.total_size - downloaded_bytes) / avg_speed
 
         minutes, seconds = divmod(int(time_left), 60)
         hours, minutes = divmod(minutes, 60)
@@ -65,10 +66,17 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.eta_label.configure(text=f"ETA: {time_left_str}")
 
     def cancel_button_event(self, skip_confirmation=False):
-        if skip_confirmation or messagebox.askyesno("Confirmation", "Are you sure you want to cancel this download?"):
-            self.cancel_download_raised = True
-            self.cancel_download_button.configure(text="Cancelling...", state="disabled")
-            self.destroy()
+        start_time = time.perf_counter()
+        self.cancel_download_raised = True
+        if skip_confirmation and messagebox.askyesno("Confirmation","Are you sure you want to cancel this download?"):
+            self.cancel_download_button.configure(text="Cancelled", state="disabled")
+            self.install_status_label.configure(text="Status: Cancelled")
+            return True
+        else:
+            self.time_during_cancel = time.perf_counter() - start_time
+            return False
+        
+            
     def update_extraction_progress(self, value):
         self.progress_bar.set(value)
         self.percentage_complete.configure(text=f"{str(value*100).split('.')[0]}%")
@@ -77,8 +85,12 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.cancel_download_raised = True
         self.cancel_download_button.configure(state="disabled")
         self.install_status_label.configure(text=f"Encountered error: {error}")
-        
-            
+    def skip_to_installation(self):
+        self.download_name.configure(text=f"{self.download_name.cget('text')} (Not downloaded through app)")
+        self.download_speed_label.grid_forget()
+        self.eta_label.grid_forget()
+        self.cancel_download_button.configure(state="disabled")
+        self.progress_label.grid_forget()
     
             
     def complete_download(self, emulator):
@@ -467,7 +479,11 @@ class Application(customtkinter.CTk):
                 
                 for data in response.iter_content(chunk_size=1024*512):
                     if download_status_frame.cancel_download_raised:
-                        raise Exception("Download cancelled by user")
+                        if download_status_frame.cancel_button_event(True):
+                            raise Exception("Download cancelled by user")
+                        else:
+                            download_status_frame.cancel_download_raised = False
+                    
                     downloaded_bytes+=len(data)
                     f.write(data)
                     
