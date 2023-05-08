@@ -183,11 +183,19 @@ class Application(customtkinter.CTk):
         self.options_menu.add_cascade(label="Choose chunk size...", menu=self.chunk_size_menu)
         if not os.path.exists(download_folder):
             os.makedirs(download_folder)
+            
+        self.protocol("WM_DELETE_WINDOW",self.on_closing)
         self.fetch_versions()
         self.mainloop()
     
         
-
+    def on_closing(self):
+        if self.firmware_installation_in_progress or self.key_installation_in_progress:
+            if not messagebox.askyesno("Confirmation", "Are you sure you want to quit? The download in progress will be stopped"):
+                return
+        
+        quit()
+        
     def fetch_versions(self):
         
         if self.fetching_versions:
