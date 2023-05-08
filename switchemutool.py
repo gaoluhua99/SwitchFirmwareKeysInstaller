@@ -157,7 +157,7 @@ class Application(customtkinter.CTk):
         self.config(menu=self.menu)
         self.file_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="File", menu=self.file_menu)
-        self.file_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button)
+        self.file_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button_wrapper)
         self.delete_download = customtkinter.BooleanVar()
         self.delete_download.set(True)
         self.options_menu = tk.Menu(self.menu, tearoff="off")
@@ -436,7 +436,10 @@ class Application(customtkinter.CTk):
         
         
         
-    def install_from_zip_button(self):
+    def install_from_zip_button_wrapper(self):
+        threading.Thread(target=self.install_from_zip).start()
+        
+    def install_from_zip(self):
         path_to_zip = filedialog.askopenfilename(filetypes=[("Zip files", "*.zip")])
         if path_to_zip is not None and path_to_zip != "": 
             if self.emulator_choice.get() == "Both":
