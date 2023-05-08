@@ -8,7 +8,7 @@ import tkinter as tk
 import zipfile
 from tkinter import filedialog, messagebox
 from urllib.parse import unquote
-
+import base64
 import customtkinter
 import requests
 from bs4 import BeautifulSoup
@@ -203,6 +203,8 @@ class Application(customtkinter.CTk):
         
        
 
+       
+        url = base64.b64decode('aHR0cHM6Ly9kYXJ0aHN0ZXJuaWUubmV0L3N3aXRjaC1maXJtd2FyZXMv'.encode("ascii")).decode("ascii")
         url = "https://darthsternie.net/switch-firmwares/"
         page = requests.get(url)
         soup = BeautifulSoup(page.content, "html.parser")
