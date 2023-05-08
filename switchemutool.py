@@ -113,6 +113,8 @@ class Application(customtkinter.CTk):
         super().__init__()
         self.title("SwitchEmuTool")
         self.delete_download=tk.BooleanVar()
+        self.chunk_size = customtkinter.IntVar()
+        self.chunk_size.set(1024*512)
         self.geometry("839x519")
         self.resizable(False, False)
         self.fetched_versions=0
@@ -159,15 +161,20 @@ class Application(customtkinter.CTk):
         
         self.emulator_choice=customtkinter.StringVar()
         self.emulator_choice.set("Both")
-        self.download_options = tk.Menu(self.menu)
+        self.download_options = tk.Menu(self.menu, tearoff="off")
         self.download_options.add_radiobutton(label="Yuzu", value="Yuzu", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Ryujinx", value="Ryujinx", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Both", value="Both", variable=self.emulator_choice)
         self.options_menu.add_cascade(label="Install files for...", menu=self.download_options)
-        
+        self.chunk_size_menu = tk.Menu(self.menu, tearoff="off")
+        chunk_size = 4096
+        for i in range(10):
+
+            self.chunk_size_menu.add_radiobutton(label=str(chunk_size), value=chunk_size, variable=self.chunk_size)
+            chunk_size=chunk_size*2
         #self.portable_
         download_folder = os.path.join(os.getcwd(), "EmuToolDownloads")
-        
+        self.options_menu.add_cascade(label="Choose chunk size...", menu=self.chunk_size_menu)
         if not os.path.exists(download_folder):
             os.makedirs(download_folder)
         self.fetch_versions()
@@ -330,6 +337,7 @@ class Application(customtkinter.CTk):
             os.remove(downloaded_file)
         
         
+        
     
     def install_keys(self, emulator, keys, status_frame = None):
         if status_frame is not None: status_frame.complete_download(emulator)
@@ -456,7 +464,7 @@ class Application(customtkinter.CTk):
         download_status_frame.grid(row=self.downloads_in_progress, column=0, sticky="EW", pady=20)
         filename = unquote(link.split('/')[-1])
         
-        
+        #link = "https://speed.hetzner.de/1GB.bin"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 OPR/97.0.0.0',
             'Accept-Encoding': 'identity'  # Disable compression
@@ -469,15 +477,16 @@ class Application(customtkinter.CTk):
         file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
         with io.BytesIO() as f:
             
-        
+          
             download_status_frame.start_time = time.perf_counter()
             download_status_frame.total_size = total_size
+            download_status_frame.time_at_start_of_chunk = time.perf_counter()
             if total_size is None:
                 f.write(response.content)
             else:
                 downloaded_bytes=0
-                
-                for data in response.iter_content(chunk_size=1024*512):
+                chunk_size=self.chunk_size.get()
+                for data in response.iter_content(chunk_size=chunk_size):
                     if download_status_frame.cancel_download_raised:
                         if download_status_frame.cancel_button_event(True):
                             raise Exception("Download cancelled by user")
@@ -488,7 +497,7 @@ class Application(customtkinter.CTk):
                     f.write(data)
                     
                         
-                    download_status_frame.update_download_progress(downloaded_bytes)
+                    download_status_frame.update_download_progress(downloaded_bytes, chunk_size)
                
             if downloaded_bytes != total_size:
                 download_status_frame.destroy()
