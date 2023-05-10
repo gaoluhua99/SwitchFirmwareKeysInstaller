@@ -124,6 +124,7 @@ class Application(customtkinter.CTk):
         self.resizable(False, False)
         self.fetched_versions=0
         self.fetching_versions=False
+        self.versions_fetched = False
         self.firmware_installation_in_progress = False
         self.key_installation_in_progress = False
         self.retries_attempted = 0
@@ -166,7 +167,7 @@ class Application(customtkinter.CTk):
         self.menu.add_cascade(label="Options", menu=self.options_menu)
         self.options_menu.add_checkbutton(label="Delete files after installing", offvalue=False, onvalue=True, variable=self.delete_download)
         
-        
+        self.options_menu.add_command(label="Attempt version fetch", command=self.fetch_versions)
         self.emulator_choice=customtkinter.StringVar()
         self.emulator_choice.set("Both")
         self.download_options = tk.Menu(self.menu, tearoff="off")
@@ -201,7 +202,11 @@ class Application(customtkinter.CTk):
         if self.fetching_versions:
             messagebox.showerror("EmuTool","A version fetch is already in progress!")
             return
+        if self.versions_fetched:
+            messagebox.showerror("EmuTool","The versions available have already been displayed")
+            return
         self.fetching_versions=True
+        self.versions_fetched = False
         self.fetched_versions=0
         self.error_encountered = None
         self.error_fetching_versions = False
@@ -224,7 +229,8 @@ class Application(customtkinter.CTk):
                     self.fetch_versions()
                     return
                 else:
-                    quit()
+                    messagebox.showinfo("EmuTool","You will only be able to install firmware and keys through files that are already downloaded by clicking \nFile > Install Firmware/Keys from ZIP/.keys file at the tom.")
+                    return
                 
             sleep(1)
         count=0
@@ -240,6 +246,7 @@ class Application(customtkinter.CTk):
                     version_button.grid(row=count, column=1, pady=10, sticky="E")
                     count+=1
         self.fetching_versions=False
+        self.versions_fetched = True
                 
                 
                     
