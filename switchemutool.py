@@ -159,6 +159,7 @@ class Application(customtkinter.CTk):
         self.file_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button_wrapper)
+        self.file_menu.add_command(label="Install keys from ZIP/.keys file", command=self.install_keys_button_wrapper)
         self.delete_download = customtkinter.BooleanVar()
         self.delete_download.set(True)
         self.options_menu = tk.Menu(self.menu, tearoff="off")
@@ -442,8 +443,84 @@ class Application(customtkinter.CTk):
                 raise Exception("Error: Firmware file is not a zip file.")
                 
         
+    def install_keys_button_wrapper(self):
+        threading.Thread(target=self.start_key_installation_custom).start()
+        
+    def start_key_installation_custom(self):
+        path_to_key = filedialog.askopenfilename(filetypes=[("keys","*.keys *.zip")])
+        _, ext = os.path.splitext(path_to_key)
+        if ext == "":
+            return
+        self.downloads_in_progress += 1
+        status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_key.split("/")[-1]))
+        status_frame.grid(row=self.downloads_in_progress, pady=10, sticky="EW")
+        status_frame.skip_to_installation()
+        
+        if ext == ".zip":
+            try:
+                self.tabview.set("Downloads")
+                path_to_extracted_key = self.extract_keys_from_custom_zip(path_to_key, status_frame)
+            except Exception as Error:
+                messagebox.showerror("Error",Error)
+                status_frame.installation_interrupted(Error)
+                return
+        elif ext == ".keys":
+            path_to_extracted_key = path_to_key
+        else:
+            messagebox.showerror("Error","Invalid filetype; should only be a zip file or a .keys file")
+            status_frame.destroy()
+            self.downloads_in_progress -= 1
+            return
+        self.key_installation_in_progress = True
+        
+        self.tabview.set("Downloads")
+        try:
+            if self.emulator_choice.get() != "Both":
+                self.install_keys(self.emulator_choice.get(), path_to_extracted_key, status_frame)
+            else:
+                self.install_keys("Yuzu", path_to_extracted_key, status_frame)
+                self.install_keys("Ryujinx", path_to_extracted_key, status_frame)
+        except Exception as Error:
+            messagebox.showerror("Error",Error)
+            self.key_installation_in_progress = False
+            return
+    
+        status_frame.finish_installation()
+        self.key_installation_in_progress = False
         
         
+    def extract_keys_from_custom_zip(self, zip_location, status_frame):
+        temp_directory = os.path.join(os.getcwd(), "EmuToolDownloads\.tempExtracts")
+        with open(zip_location, 'rb') as file:
+            
+              
+            with zipfile.ZipFile(file) as archive:
+                return self.extract_keys_from_zip(archive, temp_directory, status_frame)
+    
+    def extract_keys_from_zip(self, archive, extract_location, status_frame):
+        self.delete_files_and_folders(extract_location)
+        os.makedirs(extract_location, exist_ok=True)
+        total_files = len(archive.namelist())
+        extracted_files = 0
+        status_frame.install_status_label.configure(text="Status: Extracting keys...")
+        for entry in archive.infolist():
+            if entry.filename.endswith('.keys'):
+                if not os.path.exists(os.path.join(extract_location, entry.filename.split("/")[-2])): os.mkdir(os.path.join(extract_location, entry.filename.split("/")[-2]))
+                file = os.path.join(entry.filename.split("/")[-2], entry.filename.split("/")[-1])
+                extracted_file = os.path.join(extract_location, file)
+                with open(extracted_file, 'wb') as f:
+                    f.write(archive.read(entry))
+                extracted_files += 1
+            else:
+                total_files -= 1
+            if total_files == 0:
+                raise Exception("ZIP file does not contain any .keys files")
+            status_frame.update_extraction_progress (extracted_files / total_files)
+        key_location = os.path.join(os.path.join(extract_location, entry.filename.split("/")[-2]), "prod.keys")
+        if os.path.exists(key_location):
+            return key_location
+        else:
+            raise Exception("prod.keys not found within .ZIP file.")
         
     def install_from_zip_button_wrapper(self):
         threading.Thread(target=self.install_from_zip).start()
