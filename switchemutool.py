@@ -119,7 +119,7 @@ class Application(customtkinter.CTk):
         self.title("SwitchEmuTool")
         self.delete_download=tk.BooleanVar()
         self.chunk_size = customtkinter.IntVar()
-        self.chunk_size.set(1024*512)
+        self.chunk_size.set(1024*(2**5))
         self.geometry("839x519")
         self.resizable(False, False)
         self.fetched_versions=0
@@ -175,11 +175,9 @@ class Application(customtkinter.CTk):
         self.download_options.add_radiobutton(label="Both", value="Both", variable=self.emulator_choice)
         self.options_menu.add_cascade(label="Install files for...", menu=self.download_options)
         self.chunk_size_menu = tk.Menu(self.menu, tearoff="off")
-        chunk_size = 4096
-        for i in range(10):
-
-            self.chunk_size_menu.add_radiobutton(label=str(chunk_size), value=chunk_size, variable=self.chunk_size)
-            chunk_size=chunk_size*2
+    
+        for i in range(12): self.chunk_size_menu.add_radiobutton(label=f"{str(int((self.chunk_size.get()*(2**i))/1024))} KB" if self.chunk_size.get()*(2**i) < 1024*1024 else f"{str(int((self.chunk_size.get()*(2**i))/1024/1024))} MB", value=self.chunk_size.get()*(2**i), variable=self.chunk_size)
+        self.chunk_size.set(1024*512)
         #self.portable_
         download_folder = os.path.join(os.getcwd(), "EmuToolDownloads")
         self.options_menu.add_cascade(label="Choose chunk size...", menu=self.chunk_size_menu)
