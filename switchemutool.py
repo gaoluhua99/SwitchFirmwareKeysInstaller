@@ -1,14 +1,15 @@
-import io
+import base64
 import os
 import re
 import shutil
 import threading
-import time
 import tkinter as tk
 import zipfile
+from io import BytesIO
+from time import perf_counter, sleep
 from tkinter import filedialog, messagebox
 from urllib.parse import unquote
-import base64
+
 import customtkinter
 import requests
 from bs4 import BeautifulSoup
@@ -21,7 +22,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.cancel_download_raised = False
         self.parent = parent
         self.filename = filename
-        self.start_time = time.perf_counter()
+        self.start_time = perf_counter()
         self.total_size = 0
         self.time_during_cancel = 0
         self.download_name = customtkinter.CTkLabel(self, text=filename)
@@ -52,8 +53,8 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
     def update_download_progress(self, downloaded_bytes, chunk_size):
         
         done = downloaded_bytes / self.total_size
-        avg_speed = downloaded_bytes / ((time.perf_counter() - self.start_time) - self.time_during_cancel)
-        #cur_speed = chunk_size / (time.perf_counter() - self.time_at_start_of_chunk)
+        avg_speed = downloaded_bytes / ((perf_counter() - self.start_time) - self.time_during_cancel)
+        #cur_speed = chunk_size / (perf_counter() - self.time_at_start_of_chunk)
         time_left = (self.total_size - downloaded_bytes) / avg_speed
 
         minutes, seconds = divmod(int(time_left), 60)
@@ -65,26 +66,26 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.percentage_complete.configure(text=f"{str(done*100).split('.')[0]}%")
         self.download_speed_label.configure(text=f"{avg_speed/1024/1024:.2f} MB/s")
         self.eta_label.configure(text=f"ETA: {time_left_str}")
-        self.time_at_start_of_chunk = time.perf_counter()
+        self.time_at_start_of_chunk = perf_counter()
         #print(f"Current: {speed/1024/1024:.2f} MB/s")
         #print(f"Avg: {avg_speed/1024/1024:.2f} MB/s")
 
     def cancel_button_event(self, skip_confirmation=False):
-        start_time = time.perf_counter()
+        start_time = perf_counter()
         self.cancel_download_raised = True
         if skip_confirmation and messagebox.askyesno("Confirmation","Are you sure you want to cancel this download?"):
             self.cancel_download_button.configure(text="Cancelled", state="disabled")
             self.install_status_label.configure(text="Status: Cancelled")
             return True
         else:
-            self.time_during_cancel += ( time.perf_counter() - start_time )
+            self.time_during_cancel += ( perf_counter() - start_time )
             return False
         
             
     def update_extraction_progress(self, value):
         self.progress_bar.set(value)
         self.percentage_complete.configure(text=f"{str(value*100).split('.')[0]}%")
-            
+        
     def installation_interrupted(self, error):
         self.cancel_download_raised = True
         self.cancel_download_button.configure(state="disabled")
@@ -95,7 +96,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.eta_label.grid_forget()
         self.cancel_download_button.configure(state="disabled")
         self.progress_label.grid_forget()
-    
+        
             
     def complete_download(self, emulator):
         self.cancel_download_button.configure(state="disabled")
@@ -103,7 +104,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.progress_bar.set(0)
         self.percentage_complete.configure(text="0%")
     def finish_installation(self):
-        minutes, seconds = divmod(int(time.perf_counter()-self.start_time), 60)
+        minutes, seconds = divmod(int(perf_counter()-self.start_time), 60)
         hours, minutes = divmod(minutes, 60)
         elapsed_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         self.install_status_label.configure(text="Status: Complete")
@@ -226,7 +227,7 @@ class Application(customtkinter.CTk):
                 else:
                     quit()
                 
-            time.sleep(1)
+            sleep(1)
         count=0
         for firmware_version in self.firmware_versions:
             for key_version in self.key_versions:
@@ -527,12 +528,12 @@ class Application(customtkinter.CTk):
         #response=requests.get(link, headers=headers, stream=True)
         total_size = int(response.headers.get('content-length', 0))
         file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
-        with io.BytesIO() as f:
+        with BytesIO() as f:
             
           
-            download_status_frame.start_time = time.perf_counter()
+            download_status_frame.start_time = perf_counter()
             download_status_frame.total_size = total_size
-            download_status_frame.time_at_start_of_chunk = time.perf_counter()
+            download_status_frame.time_at_start_of_chunk = perf_counter()
             if total_size is None:
                 f.write(response.content)
             else:
@@ -554,7 +555,7 @@ class Application(customtkinter.CTk):
             if downloaded_bytes != total_size:
                 download_status_frame.destroy()
                 self.downloads_in_progress -= 1
-                raise Exception(f"File was not completely downloaded {downloaded_bytes}/{total_size}\n Exited after {time.perf_counter() - download_status_frame.start_time} s.")
+                raise Exception(f"File was not completely downloaded {downloaded_bytes}/{total_size}\n Exited after {perf_counter() - download_status_frame.start_time} s.")
 
             with open(file_path, 'wb') as file:
                 file.write(f.getvalue())
