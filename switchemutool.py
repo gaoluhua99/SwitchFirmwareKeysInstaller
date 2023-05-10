@@ -242,7 +242,7 @@ class Application(customtkinter.CTk):
                     links=[key_version[1], firmware_version[1]]
                     version_label = customtkinter.CTkLabel(self.both_versions_frame, text=version)
                     version_label.grid(row=count, column=0, pady=10, sticky="W")
-                    version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.download(links, mode="Both"))
+                    version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.start_installation(links, mode="Both"))
                     version_button.grid(row=count, column=1, pady=10, sticky="E")
                     count+=1
         self.fetching_versions=False
@@ -301,7 +301,7 @@ class Application(customtkinter.CTk):
         for i ,(version, link) in enumerate(versions):
             version_label = customtkinter.CTkLabel(self.firmware_versions_frame, text=version)
             version_label.grid(row=i, column=0, pady=10, sticky="W")
-            version_button = customtkinter.CTkButton(self.firmware_versions_frame, text="Download", command=lambda link=link: self.download(link, mode="Firmware"))
+            version_button = customtkinter.CTkButton(self.firmware_versions_frame, text="Download", command=lambda link=link: self.start_installation(link, mode="Firmware"))
             version_button.grid(row=i, column=1, pady=10, sticky="E")
         self.fetched_versions+=1
     def display_key_versions(self, versions):
@@ -310,40 +310,40 @@ class Application(customtkinter.CTk):
         for i,(version, link) in enumerate(versions):
             version_label = customtkinter.CTkLabel(self.key_versions_frame, text=version)
             version_label.grid(row=i, column=0, pady=10, sticky="W")
-            version_button = customtkinter.CTkButton(self.key_versions_frame, text="Download", command=lambda link=link: self.download(link, mode="Keys"))
+            version_button = customtkinter.CTkButton(self.key_versions_frame, text="Download", command=lambda link=link: self.start_installation(link, mode="Keys"))
             version_button.grid(row=i, column=1, pady=10, sticky="E")
         self.fetched_versions+=1
             
         
     
-    def download(self, link, mode):
+    def start_installation(self, link, mode):
         self.tabview.set("Downloads")
         if mode=="Both":
             if self.key_installation_in_progress or self.firmware_installation_in_progress:
                 messagebox.showerror("Error","There is already a firmware or key installation in progress!")
                 return
         
-            threading.Thread(target=self.download_both, args=(link,)).start()
+            threading.Thread(target=self.install_both, args=(link,)).start()
         elif mode == "Keys":
             if self.key_installation_in_progress:
                 messagebox.showerror("Error","There is already a key installation in progress!")
                 return
             
-            threading.Thread(target=self.download_keys, args=(link,)).start()
+            threading.Thread(target=self.start_key_installation, args=(link,)).start()
         elif mode == "Firmware":
             if self.firmware_installation_in_progress:
                 messagebox.showerror("Error","There is already a firmware installation in progress!")
                 return
             
-            threading.Thread(target=self.download_firmware, args=(link,)).start()
+            threading.Thread(target=self.start_firmware_installation, args=(link,)).start()
         
 
-    def download_both(self, links):
-        self.download_keys(links[0])
-        self.download_firmware(links[1])
+    def install_both(self, links):
+        self.start_key_installation(links[0])
+        self.start_firmware_installation(links[1])
    
    
-    def download_keys(self, link):
+    def start_key_installation(self, link):
         self.downloads_in_progress+=1
         self.key_installation_in_progress = True
         try:
@@ -391,7 +391,7 @@ class Application(customtkinter.CTk):
         if status_frame is not None: status_frame.update_extraction_progress(1)
                         
     
-    def download_firmware(self, link):
+    def start_firmware_installation(self, link):
         self.downloads_in_progress+=1
         self.firmware_installation_in_progress = True
         try:
@@ -443,7 +443,7 @@ class Application(customtkinter.CTk):
             if ext == ".zip":
               
                 with zipfile.ZipFile(file) as archive:
-                    self.extract_from_zip(archive, install_directory, emulator, status_frame)
+                    self.extract_firmware_from_zip(archive, install_directory, emulator, status_frame)
             else:
                 raise Exception("Error: Firmware file is not a zip file.")
                 
@@ -526,38 +526,42 @@ class Application(customtkinter.CTk):
             return key_location
         else:
             raise Exception("prod.keys not found within .ZIP file.")
-        
+    
     def install_from_zip_button_wrapper(self):
-        threading.Thread(target=self.install_from_zip).start()
+        threading.Thread(target=self.start_firmware_installation_from_custom_zip).start()
         
-    def install_from_zip(self):
+    def start_firmware_installation_from_custom_zip(self):
         path_to_zip = filedialog.askopenfilename(filetypes=[("Zip files", "*.zip")])
         if path_to_zip is not None and path_to_zip != "": 
             self.downloads_in_progress+=1
             self.firmware_installation_in_progress = True
             self.tabview.set("Downloads")
             status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_zip.split("/")[-1]))
-            status_frame.grid(row=self.downloads_in_progress, pady=10)
+            status_frame.grid(row=self.downloads_in_progress, pady=10, sticky="EW")
             status_frame.skip_to_installation()
             if self.emulator_choice.get() == "Both":
                 try:
                     self.install_firmware("Yuzu", path_to_zip, status_frame)
                     self.install_firmware("Ryujinx", path_to_zip, status_frame)
-                except Exception as e:
-                    messagebox.showerror("Error", e)
+                except Exception as error:
+                    messagebox.showerror("Error", error)
+                    status_frame.installation_interrupted(error)
+                    return
                 
             else:
                 try:
                     self.install_firmware(self.emulator_choice.get(), path_to_zip, status_frame)
                 except Exception as e:
                     messagebox.showerror("Error", e)
+                    status_frame.installation_interrupted(e)
+                    return
             status_frame.finish_installation()
             self.firmware_installation_in_progress = False
             
         
 
 
-    def extract_from_zip(self, archive, install_directory, emulator, status_frame = None):
+    def extract_firmware_from_zip(self, archive, install_directory, emulator, status_frame = None):
         self.delete_files_and_folders(install_directory)
         total_files = len(archive.namelist())
         extracted_files = 0
