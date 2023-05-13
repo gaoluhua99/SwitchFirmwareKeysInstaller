@@ -625,7 +625,7 @@ class Application(customtkinter.CTk):
         file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
         with BytesIO() as f:
             
-          
+            start_time = perf_counter()
             download_status_frame.start_time = perf_counter()
             download_status_frame.total_size = total_size
             download_status_frame.time_at_start_of_chunk = perf_counter()
@@ -650,7 +650,7 @@ class Application(customtkinter.CTk):
             if downloaded_bytes != total_size:
                 download_status_frame.destroy()
                 self.downloads_in_progress -= 1
-                raise Exception(f"File was not completely downloaded {downloaded_bytes}/{total_size}\n Exited after {perf_counter() - download_status_frame.start_time} s.")
+                raise Exception(f"File was not completely downloaded {downloaded_bytes/1024/1024} MB / {total_size/1024/1024} MB\n Exited after {(perf_counter() - start_time):.2f} s.")
 
             with open(file_path, 'wb') as file:
                 file.write(f.getvalue())
