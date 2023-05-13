@@ -488,12 +488,15 @@ class Application(customtkinter.CTk):
         threading.Thread(target=self.start_key_installation_custom).start()
         
     def start_key_installation_custom(self):
+        if self.key_installation_in_progress:
+            messagebox.showerror("Error", "There is already a key installation in progress. Please cancel the current installation to continue")
+            return 
         path_to_key = filedialog.askopenfilename(filetypes=[("keys","*.keys *.zip")])
         _, ext = os.path.splitext(path_to_key)
         if ext == "":
             return
         self.downloads_in_progress += 1
-        status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_key.split("/")[-1]))
+        status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_key.split("/")[-1]), self)
         status_frame.grid(row=self.downloads_in_progress, pady=10, sticky="EW")
         status_frame.skip_to_installation()
         
@@ -567,12 +570,15 @@ class Application(customtkinter.CTk):
         threading.Thread(target=self.start_firmware_installation_from_custom_zip).start()
         
     def start_firmware_installation_from_custom_zip(self):
+        if self.firmware_installation_in_progress:
+            messagebox.showerror("Error", "There is already a firmware installation in progress. Please cancel the current installation to continue")
+            return 
         path_to_zip = filedialog.askopenfilename(filetypes=[("Zip files", "*.zip")])
         if path_to_zip is not None and path_to_zip != "": 
             self.downloads_in_progress+=1
             self.firmware_installation_in_progress = True
             self.tabview.set("Downloads")
-            status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_zip.split("/")[-1]))
+            status_frame=DownloadStatusFrame(self.downloads_frame, (path_to_zip.split("/")[-1]), self)
             status_frame.grid(row=self.downloads_in_progress, pady=10, sticky="EW")
             status_frame.skip_to_installation()
             if self.emulator_choice.get() == "Both":
@@ -595,7 +601,11 @@ class Application(customtkinter.CTk):
             self.firmware_installation_in_progress = False
             
         
-
+    def start_firmware_installation_from_directory(self):
+        if self.firmware_installation_in_progress:
+            messagebox.showerror("Error", "There is already a firmware installation in progress. Please cancel the current installation to continue")
+            return 
+        firmware_directory = filedialog.askdirectory(mustexist=True)
 
     def extract_firmware_from_zip(self, archive, install_directory, emulator, status_frame = None):
         self.delete_files_and_folders(install_directory)
