@@ -269,13 +269,14 @@ class Application(customtkinter.CTk):
                 
             sleep(1)
         count=0
+        
         for firmware_version in self.firmware_versions:
             for key_version in self.key_versions:
                 if firmware_version[0].split("Firmware ")[-1] == key_version[0].split("Keys ")[-1]:
             
                     version = key_version[0].split("Keys ")[-1]
                     links=[key_version[1], firmware_version[1]]
-                    version_label = customtkinter.CTkLabel(self.both_versions_frame, text=version)
+                    version_label = customtkinter.CTkLabel(self.both_versions_frame, text=f"{version} - Latest" if count == 0 else version)
                     version_label.grid(row=count, column=0, pady=10, sticky="W")
                     version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.start_installation(links, mode="Both"))
                     version_button.grid(row=count, column=1, pady=10, sticky="E")
@@ -334,7 +335,7 @@ class Application(customtkinter.CTk):
             widget.grid_forget()
 
         for i ,(version, link) in enumerate(versions):
-            version_label = customtkinter.CTkLabel(self.firmware_versions_frame, text=version)
+            version_label = customtkinter.CTkLabel(self.firmware_versions_frame, text=f"{version} - Latest" if i==0 else version)
             version_label.grid(row=i, column=0, pady=10, sticky="W")
             version_button = customtkinter.CTkButton(self.firmware_versions_frame, text="Download", command=lambda link=link: self.start_installation(link, mode="Firmware"))
             version_button.grid(row=i, column=1, pady=10, sticky="E")
@@ -343,7 +344,7 @@ class Application(customtkinter.CTk):
         for widget in self.key_versions_frame.winfo_children():
             widget.grid_forget()
         for i,(version, link) in enumerate(versions):
-            version_label = customtkinter.CTkLabel(self.key_versions_frame, text=version)
+            version_label = customtkinter.CTkLabel(self.key_versions_frame, text=f"{version} - Latest" if i==0 else version)
             version_label.grid(row=i, column=0, pady=10, sticky="W")
             version_button = customtkinter.CTkButton(self.key_versions_frame, text="Download", command=lambda link=link: self.start_installation(link, mode="Keys"))
             version_button.grid(row=i, column=1, pady=10, sticky="E")
