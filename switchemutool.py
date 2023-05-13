@@ -195,14 +195,15 @@ class Application(customtkinter.CTk):
         self.protocol("WM_DELETE_WINDOW",self.on_closing)
         self.fetch_versions()
         self.mainloop()
-    
         
     def on_closing(self):
         if self.firmware_installation_in_progress or self.key_installation_in_progress:
             if not messagebox.askyesno("Confirmation", "Are you sure you want to quit? The download in progress will be stopped"):
                 return
+            
+        self.destroy()
         
-        quit()
+        
         
     def fetch_versions(self):
         
@@ -666,8 +667,8 @@ class Application(customtkinter.CTk):
     
 
 if __name__ == "__main__":
-    Application()               
-
+    App = Application()               
+    quit()
 
 
            
