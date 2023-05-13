@@ -127,8 +127,9 @@ class Application(customtkinter.CTk):
         self.delete_download=tk.BooleanVar()
         self.chunk_size = customtkinter.IntVar()
         self.chunk_size.set(1024*(2**5))
+        self.minsize(839, 519)
         self.geometry("839x519")
-        self.resizable(False, False)
+        #self.resizable(False, False)
         self.fetched_versions=0
         self.fetching_versions=False
         self.versions_fetched = False
@@ -143,11 +144,12 @@ class Application(customtkinter.CTk):
         self.tabview.add("Keys")
         self.tabview.add("Downloads")
         self.tabview.grid(row=1, column=0, padx=20, pady=20)
-        self.firmware_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Firmware"), width=700, height=400)
-        self.firmware_versions_frame.grid(row=0, column=0)
-        self.grid_rowconfigure(0, weight=1)
+        
+        self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
+        self.firmware_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Firmware"), width=700, height=400)
+        self.firmware_versions_frame.grid(row=0, column=0, sticky="nsew")
         self.firmware_versions_frame.grid_columnconfigure(0, weight=1)
         
         self.key_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Keys"), width=700, height=400)
