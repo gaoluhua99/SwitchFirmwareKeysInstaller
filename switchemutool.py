@@ -16,13 +16,13 @@ from bs4 import BeautifulSoup
 
 
 class DownloadStatusFrame(customtkinter.CTkFrame):
-    def __init__(self, parent, filename):
-        super().__init__(parent)
+    def __init__(self, parent_frame, filename, parent):
+        super().__init__(parent_frame)
         self.grid_columnconfigure(0, weight=1)
         self.cancel_download_raised = False
-        self.parent = parent
         self.filename = filename
         self.start_time = perf_counter()
+        self.parent = parent
         self.total_size = 0
         self.time_during_cancel = 0
         self.download_name = customtkinter.CTkLabel(self, text=filename)
@@ -73,14 +73,17 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
     def cancel_button_event(self, skip_confirmation=False):
         start_time = perf_counter()
         self.cancel_download_raised = True
+        self.install_status_label.configure(text="Cancelling...")
         if skip_confirmation and messagebox.askyesno("Confirmation","Are you sure you want to cancel this download?"):
-            self.cancel_download_button.configure(text="Cancelled", state="disabled")
+            self.cancel_download_button.configure(text="Remove", command=self.remove_status_frame)
             self.install_status_label.configure(text="Status: Cancelled")
             return True
         else:
             self.time_during_cancel += ( perf_counter() - start_time )
             return False
-        
+    def remove_status_frame(self):
+        self.parent.downloads_in_progress -= 1
+        self.destroy() 
             
     def update_extraction_progress(self, value):
         self.progress_bar.set(value)
@@ -108,7 +111,9 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         hours, minutes = divmod(minutes, 60)
         elapsed_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         self.install_status_label.configure(text="Status: Complete")
-        self.download_speed_label.configure(text=f"Elapsed time: {elapsed_time}")
+        self.eta_label.configure(text=f"Elapsed time: {elapsed_time}")
+        self.download_speed_label.configure(text="0 MB/s")
+        self.cancel_download_button.configure(text="Remove", command=self.remove_status_frame, state="normal")
         messagebox.showinfo("Download Complete", f"{self.filename} has been installed")
         
    
