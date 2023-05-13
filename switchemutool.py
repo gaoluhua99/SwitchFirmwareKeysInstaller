@@ -162,37 +162,62 @@ class Application(customtkinter.CTk):
         self.downloads_frame.grid(row=0, column=0)
         self.downloads_frame.grid_columnconfigure(0, weight=1)
         
+        # Create main menu
         self.menu = tk.Menu(self.master, tearoff="off")
         self.config(menu=self.menu)
+
+        # File menu
         self.file_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="File", menu=self.file_menu)
-        self.file_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button_wrapper)
+
+        self.install_firmware_menu = tk.Menu(self.menu, tearoff="off")
+        self.file_menu.add_cascade(label="Install Firmware", menu=self.install_firmware_menu)
+
+        self.install_firmware_menu.add_command(label="Install Firmware from ZIP", command=self.install_from_zip_button_wrapper)
+        self.install_firmware_menu.add_command(label="Install Firmware from Directory", command=self.start_firmware_installation_from_directory)
         self.file_menu.add_command(label="Install keys from ZIP/.keys file", command=self.install_keys_button_wrapper)
-        self.delete_download = customtkinter.BooleanVar()
-        self.delete_download.set(True)
+
+        # Options menu
         self.options_menu = tk.Menu(self.menu, tearoff="off")
         self.menu.add_cascade(label="Options", menu=self.options_menu)
+
+        # Delete files option
+        self.delete_download = customtkinter.BooleanVar()
+        self.delete_download.set(True)
         self.options_menu.add_checkbutton(label="Delete files after installing", offvalue=False, onvalue=True, variable=self.delete_download)
-        
-        self.options_menu.add_command(label="Attempt version fetch", command=self.fetch_versions)
-        self.emulator_choice=customtkinter.StringVar()
+
+        # Emulator choice option
+        self.emulator_choice = customtkinter.StringVar()
         self.emulator_choice.set("Both")
-        self.download_options = tk.Menu(self.menu, tearoff="off")
+        self.download_options = tk.Menu(self.options_menu, tearoff="off")
         self.download_options.add_radiobutton(label="Yuzu", value="Yuzu", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Ryujinx", value="Ryujinx", variable=self.emulator_choice)
         self.download_options.add_radiobutton(label="Both", value="Both", variable=self.emulator_choice)
         self.options_menu.add_cascade(label="Install files for...", menu=self.download_options)
-        self.chunk_size_menu = tk.Menu(self.menu, tearoff="off")
-    
-        for i in range(12): self.chunk_size_menu.add_radiobutton(label=f"{str(int((self.chunk_size.get()*(2**i))/1024))} KB" if self.chunk_size.get()*(2**i) < 1024*1024 else f"{str(int((self.chunk_size.get()*(2**i))/1024/1024))} MB", value=self.chunk_size.get()*(2**i), variable=self.chunk_size)
+
+        # Chunk size option
+        self.chunk_size = customtkinter.IntVar()
+        self.chunk_size_menu = tk.Menu(self.options_menu, tearoff="off")
+        self.chunk_size.set(1024*(2**4))
+        for i in range(12):
+            value = self.chunk_size.get()*(2**i)
+            label = f"{str(int((value)/1024))} KB" if value < 1024*1024 else f"{str(int((value)/1024/1024))} MB"
+            self.chunk_size_menu.add_radiobutton(label=label, value=value, variable=self.chunk_size)
         self.chunk_size.set(1024*512)
-        #self.portable_
-        download_folder = os.path.join(os.getcwd(), "EmuToolDownloads")
         self.options_menu.add_cascade(label="Choose chunk size...", menu=self.chunk_size_menu)
+
+        # Fetch versions command
+        self.options_menu.add_command(label="Attempt version fetch", command=self.fetch_versions)
+
+        # Create downloads folder
+        download_folder = os.path.join(os.getcwd(), "EmuToolDownloads")
         if not os.path.exists(download_folder):
             os.makedirs(download_folder)
-            
-        self.protocol("WM_DELETE_WINDOW",self.on_closing)
+
+        # Add closing behavior
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # Fetch versions and start the GUI loop
         self.fetch_versions()
         self.mainloop()
         
