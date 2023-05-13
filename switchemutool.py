@@ -44,7 +44,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.install_status_label = customtkinter.CTkLabel(self, text="Status: Downloading...")
         self.install_status_label.grid(row=3, column=0, sticky="W", padx=10, pady=5)
 
-        self.eta_label = customtkinter.CTkLabel(self, text="ETA: 00:00:00")
+        self.eta_label = customtkinter.CTkLabel(self, text="Time Left: 00:00:00")
         self.eta_label.grid(row=0, column=5, sticky="E", pady=5, padx=10)
 
         self.cancel_download_button = customtkinter.CTkButton(self, text="Cancel", command=self.cancel_button_event)
@@ -65,8 +65,10 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.progress_label.configure(text=f"{downloaded_bytes/1024/1024:.2f} MB / {self.total_size/1024/1024:.2f} MB")
         self.percentage_complete.configure(text=f"{str(done*100).split('.')[0]}%")
         self.download_speed_label.configure(text=f"{avg_speed/1024/1024:.2f} MB/s")
-        self.eta_label.configure(text=f"ETA: {time_left_str}")
+        self.eta_label.configure(text=f"Time Left: {time_left_str}")
         self.time_at_start_of_chunk = perf_counter()
+        if self.install_status_label.cget("text") != "Status: Downloading...":
+            self.install_status_label.configure(text="Status: Downloading...")
         #print(f"Current: {speed/1024/1024:.2f} MB/s")
         #print(f"Avg: {avg_speed/1024/1024:.2f} MB/s")
 
@@ -599,23 +601,25 @@ class Application(customtkinter.CTk):
        
     def download_from_link(self, link, filename):
        
-        download_status_frame = DownloadStatusFrame(self.downloads_frame, filename)
+        download_status_frame = DownloadStatusFrame(self.downloads_frame, filename, self)
         download_status_frame.grid(row=self.downloads_in_progress, column=0, sticky="EW", pady=20)
+        download_status_frame.install_status_label.configure(text="Status: Waiting for response...")
         filename = unquote(link.split('/')[-1])
         
         #link = "https://speed.hetzner.de/1GB.bin"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 OPR/97.0.0.0',
             'Accept-Encoding': 'identity'  # Disable compression
         }
-        session = requests.Session()
+        
         try:
+            session = requests.Session()
             response=session.get(link, headers=headers, stream=True)
             response.raise_for_status()
         except Exception as e:
             download_status_frame.installation_interrupted("Error: Check your internet connection")
             messagebox.showerror("Error",e)
             return None
+        download_status_frame.install_status_label.configure(text="Status: Downloading")
         #response=requests.get(link, headers=headers, stream=True)
         total_size = int(response.headers.get('content-length', 0))
         file_path = os.path.join(os.path.join(os.getcwd(), "EmuToolDownloads"), filename)    
