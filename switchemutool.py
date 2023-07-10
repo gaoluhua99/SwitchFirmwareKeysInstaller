@@ -1,6 +1,7 @@
 import base64
 import os
 import re
+import sys
 import shutil
 import threading
 import tkinter as tk
@@ -229,8 +230,7 @@ class Application(customtkinter.CTk):
             if not messagebox.askyesno("Confirmation", "Are you sure you want to quit? The download in progress will be stopped"):
                 return
             
-        self.destroy()
-        
+        sys.exit()
         
         
     def fetch_versions(self):
@@ -722,7 +722,7 @@ class Application(customtkinter.CTk):
 
 if __name__ == "__main__":
     App = Application()               
-    quit()
+    
 
 
            
