@@ -654,9 +654,25 @@ class Application(customtkinter.CTk):
             session = requests.Session()
             response=session.get(link, headers=headers, stream=True)
             response.raise_for_status()
+        
+        except requests.exceptions.MissingSchema as e:
+            download_status_frame.installation_interrupted("Error During Download")
+            messagebox.showerror("Missing Schema Error",e)
+            return
+       
+        except requests.exceptions.InvalidSchema as e:
+            download_status_frame.installation_interrupted("Error During Download")
+            messagebox.showerror("Invalid Schema Error",e)
+            print(e)
+            return
+        
+        except requests.exceptions.ConnectionError as e:
+            download_status_frame.installation_interrupted("Error During Download")
+            messagebox.showerror("Connection Error",e)
+            return
         except Exception as e:
-            download_status_frame.installation_interrupted("Error: Check your internet connection")
-            messagebox.showerror("Error",e)
+            download_status_frame.installation_interrupted("Error During Download")
+            messagebox.showerror("Unkown Error",e)
             return None
         download_status_frame.install_status_label.configure(text="Status: Downloading")
         #response=requests.get(link, headers=headers, stream=True)
