@@ -308,7 +308,10 @@ class Application(customtkinter.CTk):
             if ('.zip' in link.get('href', []) and 'global' in link['href']):
                 version=link['href'].split('/')[-1].split('.zip')[-2]
                 self.firmware_versions.append((unquote(version),link))
-        self.display_firmware_versions(self.firmware_versions)
+        if len(self.firmware_versions) > 0:
+            self.display_firmware_versions(self.firmware_versions)
+        else:
+            messagebox.showerror("Connection Error", "Could not fetch firmware versions")
 
     def fetch_key_versions(self):  
         url = "https://github.com/Viren070/SwitchFirmwareKeysInstaller/blob/main/Keys/keys.md/"
@@ -327,8 +330,12 @@ class Application(customtkinter.CTk):
             if '.keys' in link.get('href', []):
                 version=re.sub('<[^>]+>', '', str(link))
                 self.key_versions.append((unquote(version),link))
-        self.display_key_versions(self.key_versions)
+                
         
+        if len(self.key_versions) > 0:
+            self.display_key_versions(self.key_versions)
+        else:
+            messagebox.showerror("Connection Error", "Could not fetch key versions")
         
     def display_firmware_versions(self, versions):
         for widget in self.firmware_versions_frame.winfo_children():
