@@ -75,7 +75,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
     def cancel_button_event(self, skip_confirmation=False):
         start_time = perf_counter()
         self.cancel_download_raised = True
-        self.install_status_label.configure(text="Cancelling...")
+        self.install_status_label.configure(text="Status: Cancelling...")
         if skip_confirmation and messagebox.askyesno("Confirmation","Are you sure you want to cancel this download?"):
             self.cancel_download_button.configure(text="Remove", command=self.remove_status_frame)
             self.install_status_label.configure(text="Status: Cancelled")
@@ -95,6 +95,7 @@ class DownloadStatusFrame(customtkinter.CTkFrame):
         self.cancel_download_raised = True
         self.cancel_download_button.configure(state="disabled")
         self.install_status_label.configure(text=f"Encountered error: {error}")
+        self.cancel_download_button.configure(text="Remove", command=self.remove_status_frame, state="normal")
     def skip_to_installation(self):
         self.download_name.configure(text=f"{self.download_name.cget('text')} (Not downloaded through app)")
         self.download_speed_label.grid_forget()
@@ -310,7 +311,7 @@ class Application(customtkinter.CTk):
         self.display_firmware_versions(self.firmware_versions)
 
     def fetch_key_versions(self):  
-        url = "https://github.com/Viren070/SwitchFirmwareKeysInstaller/blob/main/Keys/keys.md"
+        url = "https://github.com/Viren070/SwitchFirmwareKeysInstaller/blob/main/Keys/keys.md/"
         try:
             page = requests.get(url)
         except Exception as e:
@@ -325,7 +326,6 @@ class Application(customtkinter.CTk):
             
             if '.keys' in link.get('href', []):
                 version=re.sub('<[^>]+>', '', str(link))
-                
                 self.key_versions.append((unquote(version),link))
         self.display_key_versions(self.key_versions)
         
@@ -383,7 +383,7 @@ class Application(customtkinter.CTk):
         self.downloads_in_progress+=1
         self.key_installation_in_progress = True
         try:
-            download_result = self.download_from_link(link['href'], re.sub('<[^>]+>', '', str(link))) 
+            download_result = self.download_from_link(link['href'].replace("\\","").replace('"',''), re.sub('<[^>]+>', '', str(link))) 
         except Exception as e:
             messagebox.showerror("Error",e)
             self.key_installation_in_progress = False
@@ -409,11 +409,11 @@ class Application(customtkinter.CTk):
                 
                     
                     
-        status_frame.finish_installation()
-        self.key_installation_in_progress = False
-        if self.delete_download.get():
-            os.remove(downloaded_file)
+            status_frame.finish_installation()
         
+            if self.delete_download.get():
+                os.remove(downloaded_file)
+        self.key_installation_in_progress = False
         
         
     
