@@ -614,8 +614,9 @@ class Application(customtkinter.CTk):
         if self.firmware_installation_in_progress:
             messagebox.showerror("Error", "There is already a firmware installation in progress. Please cancel the current installation to continue")
             return 
-        firmware_directory = filedialog.askdirectory(mustexist=True)
-
+        
+        messagebox.showinfo("Sorry", "This feature has not been implemented yet")
+        #firmware_directory = filedialog.askdirectory(mustexist=True)
     def extract_firmware_from_zip(self, archive, install_directory, emulator, status_frame = None):
         self.delete_files_and_folders(install_directory)
         total_files = len(archive.namelist())
