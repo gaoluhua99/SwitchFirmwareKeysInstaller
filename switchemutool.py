@@ -595,6 +595,7 @@ class Application(customtkinter.CTk):
                 except Exception as error:
                     messagebox.showerror("Error", error)
                     status_frame.installation_interrupted(error)
+                    self.firmware_installation_in_progress = False
                     return
                 
             else:
@@ -603,6 +604,7 @@ class Application(customtkinter.CTk):
                 except Exception as e:
                     messagebox.showerror("Error", e)
                     status_frame.installation_interrupted(e)
+                    self.firmware_installation_in_progress = False
                     return
             status_frame.finish_installation()
             self.firmware_installation_in_progress = False
