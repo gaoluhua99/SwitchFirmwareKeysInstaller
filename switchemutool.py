@@ -716,7 +716,7 @@ class Application(customtkinter.CTk):
             if downloaded_bytes != total_size:
                 download_status_frame.destroy()
                 self.downloads_in_progress -= 1
-                raise Exception(f"File was not completely downloaded {downloaded_bytes/1024/1024} MB / {total_size/1024/1024} MB\n Exited after {(perf_counter() - start_time):.2f} s.")
+                raise Exception(f"File was not completely downloaded {(downloaded_bytes/1024/1024):.2f} MB / {(total_size/1024/1024):.2f} MB\n Exited after {(perf_counter() - start_time):.2f} s.")
 
             with open(file_path, 'wb') as file:
                 file.write(f.getvalue())
