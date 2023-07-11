@@ -634,6 +634,7 @@ class Application(customtkinter.CTk):
                             f.write(archive.read(entry))
                     elif emulator=="Yuzu":
                         new_path = os.path.join(install_directory, nca_id)
+                        os.makedirs(new_path, exist_ok=True)
                         with open(new_path, 'wb') as f:
                             f.write(archive.read(entry))
                     extracted_files+=1
