@@ -259,7 +259,7 @@ class Application(customtkinter.CTk):
             
         
         
-    def display_both_versions(self):  
+    def display_both_versions(self):       
         while self.fetched_versions<2:
             if self.error_fetching_versions:
                 
@@ -271,6 +271,9 @@ class Application(customtkinter.CTk):
                     self.fetch_versions()
                     return
                 else:
+                    self.both_versions_frame_label.grid_forget()
+                    self.key_versions_frame_label.grid_forget()
+                    self.firmware_versions_frame_label.grid_forget()
                     messagebox.showinfo("EmuTool","You will only be able to install firmware and keys through files that are already downloaded by clicking \nFile > Install Firmware/Keys from ZIP/.keys file at the tom.")
                     return
                 
