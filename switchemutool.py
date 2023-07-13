@@ -277,13 +277,14 @@ class Application(customtkinter.CTk):
             sleep(1)
         self.both_versions_frame_label.grid_forget()
         count=0
-        
+        firmware_version_list = []
         for firmware_version in self.firmware_versions:
             firmware_version_number = firmware_version[0].split("Firmware ")[-1]
             firmware_version_number = ("".join(re.split("\(|\)|\[|\]", firmware_version_number)[::2])).replace(" ","")
-            for key_version in self.key_versions: 
-                if firmware_version_number == key_version[0].split("Keys ")[-1]:
-            
+            for key_version in self.key_versions:
+                
+                if firmware_version_number== key_version[0].split("Keys ")[-1] and firmware_version_number not in firmware_version_list:
+                    firmware_version_list.append(firmware_version_number)
                     version = key_version[0].split("Keys ")[-1]
                     links=[key_version[1], firmware_version[1]]
                     version_label = customtkinter.CTkLabel(self.both_versions_frame, text=f"{version} - Latest" if count == 0 else version)
@@ -744,3 +745,7 @@ class Application(customtkinter.CTk):
 
 if __name__ == "__main__":
     App = Application()               
+    
+
+
+           
