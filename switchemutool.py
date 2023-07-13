@@ -159,12 +159,12 @@ class Application(customtkinter.CTk):
         self.key_versions_frame.grid(row=0, column=0)
         self.key_versions_frame.grid_columnconfigure(0, weight=1)
         self.key_versions_frame_label = customtkinter.CTkLabel(self.key_versions_frame, text="Fetching, please wait...")
-             
+        
         self.both_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Both"), width=700, height=400)
         self.both_versions_frame.grid(row=0, column=0)
         self.both_versions_frame.grid_columnconfigure(0, weight=1)
         self.both_versions_frame_label = customtkinter.CTkLabel(self.both_versions_frame, text="Fetching, please wait...")
-        
+           
         self.downloads_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Downloads"), width=700, height=400)
         self.downloads_frame.grid(row=0, column=0)
         self.downloads_frame.grid_columnconfigure(0, weight=1)
@@ -266,7 +266,7 @@ class Application(customtkinter.CTk):
                     
                 
                 self.fetching_versions = False
-                if self.retries_attempted < 3 and messagebox.askretrycancel("Error", f"Error while fetching versions. Retry?\n\nFull Error: {self.error_encountered}" ):
+                if messagebox.askretrycancel("Error", f"Error while fetching versions. Retry?\n\nFull Error: {self.error_encountered}" ):
                     self.retries_attempted+=1
                     self.fetch_versions()
                     return
