@@ -153,14 +153,17 @@ class Application(customtkinter.CTk):
         self.firmware_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Firmware"), width=700, height=400)
         self.firmware_versions_frame.grid(row=0, column=0, sticky="nsew")
         self.firmware_versions_frame.grid_columnconfigure(0, weight=1)
+        self.firmware_versions_frame_label = customtkinter.CTkLabel(self.firmware_versions_frame, text="Fetching, please wait...")
         
         self.key_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Keys"), width=700, height=400)
         self.key_versions_frame.grid(row=0, column=0)
         self.key_versions_frame.grid_columnconfigure(0, weight=1)
-        
+        self.key_versions_frame_label = customtkinter.CTkLabel(self.key_versions_frame, text="Fetching, please wait...")
+             
         self.both_versions_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Both"), width=700, height=400)
         self.both_versions_frame.grid(row=0, column=0)
         self.both_versions_frame.grid_columnconfigure(0, weight=1)
+        self.both_versions_frame_label = customtkinter.CTkLabel(self.both_versions_frame, text="Fetching, please wait...")
         
         self.downloads_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Downloads"), width=700, height=400)
         self.downloads_frame.grid(row=0, column=0)
@@ -241,6 +244,9 @@ class Application(customtkinter.CTk):
         if self.versions_fetched:
             messagebox.showerror("EmuTool","The versions available have already been displayed")
             return
+        self.firmware_versions_frame_label.grid(sticky='nsew')
+        self.key_versions_frame_label.grid(sticky='nsew')
+        self.both_versions_frame_label.grid(sticky='nsew')
         self.fetching_versions=True
         self.versions_fetched = False
         self.fetched_versions=0
@@ -269,6 +275,7 @@ class Application(customtkinter.CTk):
                     return
                 
             sleep(1)
+        self.both_versions_frame_label.grid_forget()
         count=0
         
         for firmware_version in self.firmware_versions:
@@ -310,9 +317,11 @@ class Application(customtkinter.CTk):
             if ('.zip' in link.get('href', []) and 'global' in link['href']):
                 version=link['href'].split('/')[-1].split('.zip')[-2]
                 self.firmware_versions.append((unquote(version),link))
+        self.firmware_versions_frame_label.grid_forget()
         if len(self.firmware_versions) > 0:
             self.display_firmware_versions(self.firmware_versions)
         else:
+            
             messagebox.showerror("Connection Error", "Could not fetch firmware versions")
 
     def fetch_key_versions(self):  
@@ -333,7 +342,7 @@ class Application(customtkinter.CTk):
                 version=re.sub('<[^>]+>', '', str(link))
                 self.key_versions.append((unquote(version),link))
                 
-        
+        self.key_versions_frame_label.grid_forget()
         if len(self.key_versions) > 0:
             self.display_key_versions(self.key_versions)
         else:
