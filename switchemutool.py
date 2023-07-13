@@ -287,18 +287,15 @@ class Application(customtkinter.CTk):
             firmware_version_number = firmware_version[0].split("Firmware ")[-1]
             firmware_version_number = ("".join(re.split("\(|\)|\[|\]", firmware_version_number)[::2])).replace(" ", "")
             if firmware_version_number in firmware_versions_dict:
-                print(f"{firmware_version_number} already added")
                 continue
             firmware_versions_dict[firmware_version_number] = (firmware_version[1])
 
         for key_version in self.key_versions:
             key_version_number = key_version[0].split("Keys ")[-1]
             if key_version_number in versions_added:
-                print(f"version {key_version_number} already added, so skipping")
                 continue
             if key_version_number in firmware_versions_dict:
                 versions_added.add(key_version_number)
-
                 version = key_version_number
                 links = [key_version[1], firmware_versions_dict[key_version_number]]
                 version_label = customtkinter.CTkLabel(self.both_versions_frame, text=f"{version} - Latest" if count == 0 else version)
@@ -306,11 +303,10 @@ class Application(customtkinter.CTk):
                 version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.start_installation(links, mode="Both"))
                 version_button.grid(row=count, column=1, pady=10, sticky="E")
                 count += 1
+                
         self.fetching_versions=False
         self.versions_fetched = True
-                
-                
-                    
+                          
     def fetch_firmware_versions(self):
         
        
