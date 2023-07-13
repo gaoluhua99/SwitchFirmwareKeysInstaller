@@ -4,6 +4,7 @@
 [Keys 16.0.0](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2016.0.0/prod.keys)
 [Keys 15.0.1](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2015.0.1/prod.keys)
 [Keys 15.0.0](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2015.0.0/prod.keys)
+[Keys 14.1.2](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2014.1.2/prod.keys)
 [Keys 14.1.1](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2014.1.1/prod.keys)
 [Keys 14.1.0](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2014.1.0/prod.keys)
 [Keys 14.0.0](https://github.com/Viren070/SwitchFirmwareKeysInstaller/raw/main/Keys/Keys%2014.0.0/prod.keys)
