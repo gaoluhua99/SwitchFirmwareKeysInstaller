@@ -280,21 +280,30 @@ class Application(customtkinter.CTk):
             sleep(1)
         self.both_versions_frame_label.grid_forget()
         count=0
-        firmware_version_list = []
-        for firmware_version in self.firmware_versions:
+        firmware_versions_dict = {}
+        versions_added = set()
+
+        for firmware_version, key_version in zip(self.firmware_versions, self.key_versions):
             firmware_version_number = firmware_version[0].split("Firmware ")[-1]
-            firmware_version_number = ("".join(re.split("\(|\)|\[|\]", firmware_version_number)[::2])).replace(" ","")
-            for key_version in self.key_versions:
-                
-                if firmware_version_number== key_version[0].split("Keys ")[-1] and firmware_version_number not in firmware_version_list:
-                    firmware_version_list.append(firmware_version_number)
-                    version = key_version[0].split("Keys ")[-1]
-                    links=[key_version[1], firmware_version[1]]
-                    version_label = customtkinter.CTkLabel(self.both_versions_frame, text=f"{version} - Latest" if count == 0 else version)
-                    version_label.grid(row=count, column=0, pady=10, sticky="W")
-                    version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.start_installation(links, mode="Both"))
-                    version_button.grid(row=count, column=1, pady=10, sticky="E")
-                    count+=1
+            firmware_version_number = ("".join(re.split("\(|\)|\[|\]", firmware_version_number)[::2])).replace(" ", "")
+            key_version_number = key_version[0].split("Keys ")[-1]
+            
+            if firmware_version_number in firmware_versions_dict:
+                continue
+            
+            if key_version_number in versions_added:
+                continue
+            
+            firmware_versions_dict[firmware_version_number] = (firmware_version[1])
+            versions_added.add(key_version_number)
+
+            version = key_version_number
+            links = [key_version[1], firmware_versions_dict[firmware_version_number]]
+            version_label = customtkinter.CTkLabel(self.both_versions_frame, text=f"{version} - Latest" if count == 0 else version)
+            version_label.grid(row=count, column=0, pady=10, sticky="W")
+            version_button = customtkinter.CTkButton(self.both_versions_frame, text="Download", command=lambda links=links: self.start_installation(links, mode="Both"))
+            version_button.grid(row=count, column=1, pady=10, sticky="E")
+            count += 1
         self.fetching_versions=False
         self.versions_fetched = True
                 
@@ -748,7 +757,3 @@ class Application(customtkinter.CTk):
 
 if __name__ == "__main__":
     App = Application()               
-    
-
-
-           
