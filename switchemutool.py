@@ -272,8 +272,10 @@ class Application(customtkinter.CTk):
         count=0
         
         for firmware_version in self.firmware_versions:
-            for key_version in self.key_versions:
-                if firmware_version[0].split("Firmware ")[-1] == key_version[0].split("Keys ")[-1]:
+            firmware_version_number = firmware_version[0].split("Firmware ")[-1]
+            firmware_version_number = ("".join(re.split("\(|\)|\[|\]", firmware_version_number)[::2])).replace(" ","")
+            for key_version in self.key_versions: 
+                if firmware_version_number == key_version[0].split("Keys ")[-1]:
             
                     version = key_version[0].split("Keys ")[-1]
                     links=[key_version[1], firmware_version[1]]
@@ -733,7 +735,3 @@ class Application(customtkinter.CTk):
 
 if __name__ == "__main__":
     App = Application()               
-    
-
-
-           
