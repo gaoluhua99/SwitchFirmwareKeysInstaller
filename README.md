@@ -1,3 +1,5 @@
+# USE [THIS](https://github.com/Viren070/Emulator-Manager) INSTEAD
+more recent version and has more functions. You can ignore the rest of the program just use the downloader within the yuzu section (will still work for ryujinx)
 # SwitchFirmwareKeysInstaller
 Tool for Yuzu &amp; Ryujinx. Allows you to install the latest (and previous versions too) keys and firmware (to the default AppData location only)
 
